@@ -87,7 +87,7 @@ def create_knowledge_base(
             reader=PDFReader(chunk=chunk)  
         )  
       
-    # Load the knowledge base  
+    # Load the knowledge base  (Comment out if documents are already loaded)
     knowledge_base.load(recreate=recreate)  
       
     return knowledge_base

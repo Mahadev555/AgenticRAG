@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from agno_agent_kb import process_user_query
+from agno_agent_kb import rag_workflow  # Import the workflow instance
 import os
 import dotenv
 
@@ -22,12 +22,8 @@ async def agno_ask():
     session_id = request.json.get("session_id", "default-session")
     user_id = request.json.get("user_id", "default-user")
     
-    # Process the query through our agent team
-    response = process_user_query(
-        query=question,
-        session_id=session_id,
-        user_id=user_id
-    )
+    # Use the RAG workflow to process the query
+    response = rag_workflow.run(question)
     
     return {"answer": str(response.content)}, 200
 
