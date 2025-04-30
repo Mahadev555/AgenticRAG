@@ -104,28 +104,29 @@ pip install -r requirements.txt
 
 ### 4. Set up environment variables
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the backend directory with the following variables:
 
 ```bash
 # OpenAI API Key for the Agno framework
 OPENAI_API_KEY=your-openai-api-key-here
 
-# Azure OpenAI Configuration (if using Azure)
-AZURE_OPENAI_API_KEY=your-azure-openai-key
-AZURE_OPENAI_ENDPOINT=your-azure-endpoint
-AZURE_OPENAI_MODEL_NAME=your-model-deployment-name
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
+# PostgreSQL Database Configuration
+POSTGRES_CONNECTION_STRING=postgresql+psycopg://username:password@localhost:5432/your_database_name
 
-# PostgreSQL Vector Database Configuration (using pgvector)
-DB_URL=postgresql+psycopg://langchain:langchain@localhost:6024/langchain
+# Vector Store Configuration
+COLLECTION_NAME=my_docs
 
 # Computing Device (cpu or cuda for GPU)
 DEVICE=cpu
+
+# Google API Key for Gemini model
+GOOGLE_API_KEY=your-google-api-key-here
 ```
 
 Make sure to:
 - Replace `your-openai-api-key-here` with your actual OpenAI API key
 - Update the PostgreSQL connection string with your database credentials
+- Replace `your-google-api-key-here` with your actual Google API key for Gemini model
 - Set DEVICE to "cuda" if you want to use GPU acceleration (requires CUDA-compatible GPU)
 
 ### 5. Install and build frontend
