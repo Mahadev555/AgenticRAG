@@ -1,4 +1,4 @@
-# 🤖 Agno-AgenticRAG
+# 🤖 Agno Agentic RAG: Rethinking Intelligent Document Retrieval
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.2.4-black.svg)](https://nextjs.org/)
