@@ -68,7 +68,7 @@ AgenticRAG/
 
 ```bash
 # Start the pgvector container
-docker run --name pgvector-container -e POSTGRES_USER=langchain -e POSTGRES_PASSWORD=langchain -e POSTGRES_DB=langchain -p 6024:5432 -d pgvector/pgvector:pg16
+docker run --name pgvector-container -e POSTGRES_USER=agno -e POSTGRES_PASSWORD=agno -e POSTGRES_DB=agno -p 6024:5432 -d pgvector/pgvector:pg16
 
 # Verify the container is running
 docker ps
