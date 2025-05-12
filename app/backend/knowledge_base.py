@@ -1,7 +1,7 @@
 def create_knowledge_base(  
     source,  
     vector_db=None,  
-    db_url="postgresql+psycopg://langchain:langchain@localhost:6024/langchain",  
+    db_url="postgresql+psycopg://agno:agno@localhost:6024/agno",  
     table_name="knowledge_base",  
     embedder=None,  
     recreate=False,  

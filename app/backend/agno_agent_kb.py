@@ -25,7 +25,7 @@ from agno.utils.pprint import pprint_run_response
 
 # Load environment variables
 load_dotenv()
-db_url = "postgresql+psycopg://langchain:langchain@localhost:6024/langchain"
+db_url = "postgresql+psycopg://agno:agno@localhost:6024/agno"
 
 # Setup reporting directories
 reports_dir = Path(__file__).parent.joinpath("reports", "rag")
@@ -138,7 +138,7 @@ class RAGWorkflow(Workflow):
         Yields:
             Iterator[RunResponse]: The processed responses from the agent team
         """
-        logger.info(f"Processing query: {query}")
+        print(f"Processing query: {query}")
 
         # Process query through query processor
         query_response = self.query_processor.run(query)

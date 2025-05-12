@@ -1,8 +1,14 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from agno_agent_kb import rag_workflow  # Import the workflow instance
+from agno_agent_kb import RAGWorkflow  # Import the workflow instance
 import os
-import dotenv
+import dotenv 
+from dotenv import load_dotenv
+ 
+from agno.storage.postgres import PostgresStorage 
+# Load environment variables
+load_dotenv()
+db_url = "postgresql+psycopg://agno:agno@localhost:6024/agno"
 
 dotenv.load_dotenv()
 app = Flask(__name__, static_folder="static")
@@ -17,15 +23,43 @@ def serve_static(path):
     return send_from_directory("static", path)
 
 @app.route("/agno_ask", methods=["POST"])
-async def agno_ask():
+def agno_ask():
+    data = request.get_json()
+    print(f"==>> data: {data}")
+    if not data or "question" not in data:
+        return jsonify({"error": "Missing 'question' in request body"}), 400
+
+    
     question = request.json["question"]
-    session_id = request.json.get("session_id", "default-session")
-    user_id = request.json.get("user_id", "default-user")
+    # history = request.json["history"]
+    # if not isinstance(history, str):
+    #     history = json.dumps(history)
+    # print(history)
+    # Initialize the RAG workflow
+    workflow = RAGWorkflow(
+        session_id=f"rag-query-{hash(question)}",
+        storage=PostgresStorage(
+            db_url=db_url,
+            table_name="rag_agent_sessions"
+        )
+    )
+
+    # Execute the workflow and get response iterator
+    workflow_result = list(
+        workflow.run(
+            question=question,  # Pass the history to the workflow
+        )
+    )
+
+    last_result = "No result found"
+    if workflow_result:  # Ensure the list is not empty
+        last_result = workflow_result[-1]
+        print("Workflow result: %s", last_result.content)
+        return {"answer": last_result.content}, 200
     
-    # Use the RAG workflow to process the query
-    response = rag_workflow.run(question)
-    
-    return {"answer": str(response.content)}, 200
+    else:
+        print("Workflow result: No result found")
+        return {"error": "No result found, Please try reformulating your question"}, 404
 
 if __name__ == "__main__":
     app.run()
