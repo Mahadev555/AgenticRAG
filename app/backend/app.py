@@ -4,8 +4,8 @@ from agno_agent_kb import RAGWorkflow  # Import the workflow instance
 import os
 import dotenv 
 from dotenv import load_dotenv
- 
-from agno.storage.postgres import PostgresStorage 
+
+from agno.storage.sqlite import SqliteStorage 
 # Load environment variables
 load_dotenv()
 db_url = "postgresql+psycopg://agno:agno@localhost:6024/agno"
@@ -38,12 +38,11 @@ def agno_ask():
     # Initialize the RAG workflow
     workflow = RAGWorkflow(
         session_id=f"rag-query-{hash(question)}",
-        storage=PostgresStorage(
-            db_url=db_url,
-            table_name="rag_agent_sessions"
-        )
+        storage=SqliteStorage(
+            table_name="rag_workflows",
+            db_file="tmp/agno_workflows.db",
+        ),
     )
-
     # Execute the workflow and get response iterator
     workflow_result = list(
         workflow.run(
