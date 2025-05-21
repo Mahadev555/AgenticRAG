@@ -30,16 +30,6 @@ load_dotenv()
 db_url = "postgresql+psycopg://agno:agno@localhost:6024/agno"
 
 # Setup reporting directories
-reports_dir = Path(__file__).parent.joinpath("reports", "rag")
-if reports_dir.is_dir():
-    rmtree(path=reports_dir, ignore_errors=True)
-reports_dir.mkdir(parents=True, exist_ok=True)
-
-# Report file paths
-query_report = str(reports_dir.joinpath("query_report.json"))
-search_report = str(reports_dir.joinpath("search_report.json"))
-final_report = str(reports_dir.joinpath("final_report.md"))
-
 
 gemini_model = Gemini(id='gemini-2.0-flash')
 
@@ -56,14 +46,14 @@ class RAGWorkflow(Workflow):
             table_name="bray_mtr",
             db_url=db_url,
             search_type=SearchType.hybrid,
-            embedder=GeminiEmbedder(
-                id="gemini-2.0-flash"  # Explicitly set the model ID to match your deployment
-            )
+            embedder=GeminiEmbedder()
         )
+    
     )
 
 
     """Advanced workflow for Retrieval Augmented Generation with multiple specialized agents."""
+    # knowledge_base.load(recreate=False)
 
 
     rag_agent :Agent = Agent(
@@ -87,9 +77,9 @@ class RAGWorkflow(Workflow):
         "- If information is not found in knowledge base, clearly state that",
         "- Format the reference as: [Source: {PDF_name}, Page {number}]"
     ],
-    markdown=True
+    markdown=True,
+    debug_mode=True
 )
-    # knowledge_base.load(recreate=False)
 
 
     def run(self, question: str) -> Iterator[RunResponse]:

@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import {
-  Box,
+import {  Box,
   Container,
   Paper,
   Typography,
@@ -25,6 +24,13 @@ import {
   Alert,
   Snackbar,
   Tooltip,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -47,9 +53,11 @@ interface Message {
   error?: boolean;
 }
 
-interface BackendMessage {
-  content: string;
-  role: string;
+// Add new interfaces for upload components
+interface UploadState {
+  loading: boolean;
+  error: string | null;
+  success: string | null;
 }
 
 export default function Home() {
@@ -59,9 +67,21 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' as 'info' | 'error' });
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'info' | 'error' | 'success';
+  }>({ open: false, message: '', severity: 'info' });
   const messageListRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>({
+    loading: false,
+    error: null,
+    success: null,
+  });
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [showUrlDialog, setShowUrlDialog] = useState(false);
 
   const theme = createTheme({
     palette: {
@@ -208,11 +228,91 @@ export default function Home() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setNotification({
-      open: true,
-      message: 'File upload functionality coming soon!',
-      severity: 'info'
-    });
+    setUploadState({ loading: true, error: null, success: null });
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/upload/file', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setUploadState({
+          loading: false,
+          error: null,
+          success: `File ${file.name} uploaded successfully!`
+        });
+        setNotification({
+          open: true,
+          message: data.message,
+          severity: 'success'
+        });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      setUploadState({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to upload file',
+        success: null
+      });
+      setNotification({
+        open: true,
+        message: error instanceof Error ? error.message : 'Failed to upload file',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleUrlUpload = async () => {
+    if (!uploadUrl) return;
+
+    setUploadState({ loading: true, error: null, success: null });
+
+    try {
+      const response = await fetch('/upload/url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: uploadUrl }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setUploadState({
+          loading: false,
+          error: null,
+          success: 'URL document added successfully!'
+        });
+        setNotification({
+          open: true,
+          message: data.message,
+          severity: 'success'
+        });
+        setShowUrlDialog(false);
+        setUploadUrl('');
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      setUploadState({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to process URL',
+        success: null
+      });
+      setNotification({
+        open: true,
+        message: error instanceof Error ? error.message : 'Failed to process URL',
+        severity: 'error'
+      });
+    }
   };
 
   const filteredMessages = messages.filter(message =>
@@ -222,7 +322,17 @@ export default function Home() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: '100vh',
+          maxWidth: '1200px', // Add max width
+          margin: '0 auto', // Center the container
+          width: '100%', // Take full width up to max-width
+          boxShadow: '0px 0px 10px rgba(0,0,0,0.1)', // Add subtle shadow
+        }}
+      >
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -232,11 +342,9 @@ export default function Home() {
               <IconButton onClick={() => setIsSearchOpen(!isSearchOpen)}>
                 <SearchIcon />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="Upload document">
-              <IconButton component="label">
+            </Tooltip>            <Tooltip title="Upload document">
+              <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
                 <UploadIcon />
-                <input type="file" hidden onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Toggle dark mode">
@@ -259,22 +367,104 @@ export default function Home() {
           )}
         </AppBar>
 
-        <Box
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+        >
+          <MenuItem component="label">
+            Upload File
+            <input
+              type="file"
+              hidden
+              onChange={(e) => {
+                setAnchorEl(null);
+                handleFileUpload(e);
+              }}
+              accept=".pdf"
+            />
+          </MenuItem>
+          <MenuItem onClick={() => {
+            setAnchorEl(null);
+            setShowUrlDialog(true);
+          }}>
+            Upload from URL
+          </MenuItem>
+        </Menu>
+
+        <Dialog open={showUrlDialog} onClose={() => setShowUrlDialog(false)}>
+          <DialogTitle>Upload Document from URL</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Enter the URL of a PDF document to add to the knowledge base.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Document URL"
+              type="url"
+              fullWidth
+              variant="outlined"
+              value={uploadUrl}
+              onChange={(e) => setUploadUrl(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowUrlDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleUrlUpload}
+              disabled={!uploadUrl || uploadState.loading}
+              startIcon={uploadState.loading ? <CircularProgress size={20} /> : null}
+            >
+              Upload
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Loading indicator */}
+        {uploadState.loading && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2,
+              bgcolor: 'background.paper',
+              p: 3,
+              borderRadius: 2,
+              boxShadow: 3,
+            }}
+          >
+            <CircularProgress />
+            <Typography>Processing document...</Typography>
+          </Box>
+        )}        <Box
           ref={messageListRef}
           sx={{
             flexGrow: 1,
             overflow: 'auto',
-            p: 2,
+            p: 3,
             bgcolor: 'background.default',
+            mx: 'auto', // Center horizontally
+            width: '100%', // Take full width
+            maxWidth: '900px', // Max width for messages
           }}
         >
-          {filteredMessages.length === 0 && !searchQuery && (
-            <Paper
-              elevation={0}
+          {filteredMessages.length === 0 && !searchQuery && (            <Paper
+              elevation={3}
               sx={{
-                p: 3,
+                p: 4,
                 textAlign: 'center',
-                bgcolor: 'transparent',
+                bgcolor: 'background.paper',
+                borderRadius: 3,
+                maxWidth: '600px',
+                margin: '40px auto',
+                boxShadow: theme => `0 8px 32px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'}`,
               }}
             >
               <Typography variant="h6">
@@ -294,15 +484,33 @@ export default function Home() {
                 justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
                 mb: 2,
               }}
-            >
-              <Paper
+            >              <Paper
                 elevation={1}
                 sx={{
-                  p: 2,
-                  maxWidth: '70%',
+                  p: 2.5,
+                  maxWidth: '80%',
                   bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
                   color: message.role === 'user' ? 'primary.contrastText' : 'text.primary',
                   borderRadius: 2,
+                  boxShadow: 2,
+                  position: 'relative',
+                  '&::after': message.role === 'user' ? {
+                    content: '""',
+                    position: 'absolute',
+                    right: '-10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: '10px solid transparent',
+                    borderLeftColor: 'primary.main',
+                  } : {
+                    content: '""',
+                    position: 'absolute',
+                    left: '-10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    border: '10px solid transparent',
+                    borderRightColor: 'background.paper',
+                  },
                   ...(message.error && {
                     borderColor: 'error.main',
                     borderWidth: 1,
@@ -370,15 +578,16 @@ export default function Home() {
               </IconButton>
             </Tooltip>
           </Box>
-        )}
-
-        <Paper
+        )}        <Paper
           component="form"
           onSubmit={handleSendMessage}
           sx={{
             p: 2,
             borderTop: 1,
             borderColor: 'divider',
+            mx: 'auto', // Center horizontally
+            width: '100%',
+            maxWidth: '900px', // Match message container width
           }}
         >
           <Box sx={{ display: 'flex', gap: 1 }}>

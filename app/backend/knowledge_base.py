@@ -34,23 +34,8 @@ def create_knowledge_base(
         # Set up default embedder if not provided  
         if embedder is None:  
             # Try to use Azure OpenAI embedder if environment variables are set  
-            if all(os.getenv(var) for var in [  
-                "AZURE_EMBEDDER_OPENAI_API_KEY",   
-                "AZURE_EMBEDDER_OPENAI_ENDPOINT",   
-                "AZURE_EMBEDDER_DEPLOYMENT"  
-            ]):  
-                from agno.embedder.azure_openai import AzureOpenAIEmbedder  
-                embedder = AzureOpenAIEmbedder(  
-                    api_key=os.getenv("AZURE_EMBEDDER_OPENAI_API_KEY"),  
-                    api_version=os.getenv("AZURE_EMBEDDER_OPENAI_API_VERSION", "2024-02-15-preview"),  
-                    azure_endpoint=os.getenv("AZURE_EMBEDDER_OPENAI_ENDPOINT"),  
-                    azure_deployment=os.getenv("AZURE_EMBEDDER_DEPLOYMENT"),  
-                    id="text-embedding-ada-002"  
-                )  
-            # Fall back to OpenAI embedder  
-            else:  
-                from agno.embedder.openai import OpenAIEmbedder  
-                embedder = OpenAIEmbedder(id="text-embedding-3-small")  
+            from agno.embedder.google import GeminiEmbedder
+            embedder = GeminiEmbedder()  
           
         vector_db = PgVector(  
             table_name=table_name,  
@@ -75,7 +60,7 @@ def create_knowledge_base(
         knowledge_base = PDFUrlKnowledgeBase(  
             urls=source,  
             vector_db=vector_db,  
-            reader=PDFUrlReader(chunk=chunk, proxy=proxy)  
+            reader=PDFUrlReader()
         )  
     else:  
         from agno.knowledge.pdf import PDFKnowledgeBase  
@@ -84,7 +69,7 @@ def create_knowledge_base(
         knowledge_base = PDFKnowledgeBase(  
             path=source,  
             vector_db=vector_db,  
-            reader=PDFReader(chunk=chunk)  
+            reader=PDFReader()  
         )  
       
     # Load the knowledge base  (Comment out if documents are already loaded)
